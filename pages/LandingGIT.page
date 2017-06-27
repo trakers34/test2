@@ -1,0 +1,115 @@
+<!--
+ - Created by guillaume.rebmann on 6/21/17.
+ -->
+
+<apex:page id="LandingGIT" controller="LandingGITController" docType="html-5.0">
+    <apex:form id="formId">
+    <apex:pageBlock id="Actions" rendered="{!mode == 'view'}">
+        <apex:pageBlockButtons >
+            <apex:commandButton action="{!createSchedule}" value="New Schedule"></apex:commandButton>
+        </apex:pageBlockButtons>
+        <apex:pageBlockSection title="Configuration" columns="1" id="Configuration">
+
+            <apex:outputLabel >
+                <h3>Step 1</h3>
+            </apex:outputLabel>
+            <apex:outputPanel style="margin-left:30px;">
+                Create at least one schedule to synchronize with Github
+            </apex:outputPanel>
+
+            <apex:outputLabel >
+                <h3>Step 2</h3>
+            </apex:outputLabel>
+            <apex:outputPanel style="margin-left:30px;">
+                Init the module by clicking the "Init" button.  <br />
+            </apex:outputPanel>
+
+            <apex:outputLabel >
+                <h3>Step 3</h3>
+            </apex:outputLabel>
+            <apex:outputPanel style="margin-left:30px;">
+                Oauth with Digital Deer server to communicate with your instance of salesforce <br />
+            </apex:outputPanel>
+
+
+        </apex:pageBlockSection>
+
+        <apex:pageBlockSection title="Schedules" columns="1" id="schedules" >
+            <apex:pageBlockTable value="{!schedules}" var="item">
+                <apex:column headerValue="Name" value="{!item.name}"></apex:column>
+                <apex:column headerValue="Type" value="{!item.type}"></apex:column>
+                <apex:column headerValue="Frequency" value="{!item.frequency}"></apex:column>
+                <apex:column headerValue="Active" value="{!item.active}"></apex:column>
+                <apex:column headerValue="Action(s)">
+                    <apex:commandButton value="Edit" action="{!editSchedule}">
+                        <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
+                    </apex:commandButton>
+                    <apex:commandButton value="Delete" action="{!deleteSchedule}" >
+                        <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
+                    </apex:commandButton>
+                </apex:column>
+
+            </apex:pageBlockTable>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+        <apex:pageBlock rendered="{!OR(mode == 'new', mode == 'edit') }">
+            <apex:pageMessages ></apex:pageMessages>
+            <apex:pageBlockButtons >
+                <apex:commandButton action="{!save}"    value="Save"></apex:commandButton>
+                <apex:commandButton action="{!cancel}"  value="Cancel"></apex:commandButton>
+            </apex:pageBlockButtons>
+            <apex:pageBlockSection title="New Synchronization" columns="2" id="newSync" >
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Name" for="new_name"></apex:outputLabel>
+                    <apex:input value="{!GitScheduleItem.name}" id="new_name" required="true" disabled="{! mode == 'edit'}"></apex:input>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Type" for="new_type"></apex:outputLabel>
+                    <apex:selectList id="new_type" value="{!GitScheduleItem.type}" size="1">
+                        <apex:selectOptions value="{!Types}"/>
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Frequency" for="new_frequency"></apex:outputLabel>
+                    <apex:selectList id="new_frequency" value="{!GitScheduleItem.frequency}" size="1">
+                        <apex:selectOptions value="{!Frequencies}"/>
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Active" for="new_active"></apex:outputLabel>
+                    <apex:inputCheckbox value="{!GitScheduleItem.active}" id="new_active"></apex:inputCheckbox>
+                </apex:pageBlockSectionItem>
+
+
+
+
+                <!-- Code to FETCH -->
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Include Apex classes" for="new_apex"></apex:outputLabel>
+                    <apex:inputCheckbox value="{!GitScheduleItem.IncludeApexClasses}" id="new_apex"></apex:inputCheckbox>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Include Triggers" for="new_trigger"></apex:outputLabel>
+                    <apex:inputCheckbox value="{!GitScheduleItem.IncludeTriggers}" id="new_trigger"></apex:inputCheckbox>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Include VF pages" for="new_vfpages"></apex:outputLabel>
+                    <apex:inputCheckbox value="{!GitScheduleItem.IncludeVisualForcePages}" id="new_vfpages"></apex:inputCheckbox>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+
+                <!-- END Code to FETCH -->
+
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+
+
+
+    </apex:form>
+</apex:page>
