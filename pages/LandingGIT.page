@@ -3,6 +3,36 @@
  -->
 
 <apex:page id="LandingGIT" controller="LandingGITController" docType="html-5.0">
+    <style type="text/css">
+        .custPopup{
+            background-color: white;
+            border-width: 2px;
+            border-style: solid;
+            z-index: 9999;
+            left: 50%;
+            padding:10px;
+            position: absolute;
+            /* These are the 3 css properties you will need to change so the popup
+            displays in the center of the screen. First set the width. Then set
+            margin-left to negative half of what the width is. You can add
+            the height property for a fixed size pop up if you want.*/
+            width: 500px;
+            margin-left: -250px;
+            top:100px;
+        }
+        .popupBackground{
+            background-color:black;
+            opacity: 0.20;
+            filter: alpha(opacity = 20);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 9998;
+        }
+
+    </style>
     <apex:form id="formId">
     <apex:pageBlock id="Actions" rendered="{!mode == 'view'}">
         <apex:pageBlockButtons >
@@ -28,7 +58,7 @@
                 <h3>Step 3</h3>
             </apex:outputLabel>
             <apex:outputPanel style="margin-left:30px;">
-                Oauth with Digital Deer server to communicate with your instance of salesforce <br />
+                Oauth with Digital Deer server to communicate with your instance of salesforce <a href="http://boiling-shore-35292.herokuapp.com/oauth2/auth">OAuth</a> <br />
             </apex:outputPanel>
 
 
@@ -40,11 +70,15 @@
                 <apex:column headerValue="Type" value="{!item.type}"></apex:column>
                 <apex:column headerValue="Frequency" value="{!item.frequency}"></apex:column>
                 <apex:column headerValue="Active" value="{!item.active}"></apex:column>
+                <apex:column headerValue="SSH Ready" value="{!item.SSHReady}"></apex:column>
                 <apex:column headerValue="Action(s)">
                     <apex:commandButton value="Edit" action="{!editSchedule}">
                         <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
                     </apex:commandButton>
                     <apex:commandButton value="Delete" action="{!deleteSchedule}" >
+                        <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
+                    </apex:commandButton>
+                    <apex:commandButton value="Generate SSH keys" action="{!generateSSHKeys}" rendered="{!!item.SSHReady}" >
                         <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
                     </apex:commandButton>
                 </apex:column>
@@ -90,25 +124,60 @@
                     <apex:outputLabel value="Include Apex classes" for="new_apex"></apex:outputLabel>
                     <apex:inputCheckbox value="{!GitScheduleItem.IncludeApexClasses}" id="new_apex"></apex:inputCheckbox>
                 </apex:pageBlockSectionItem>
-                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="GIT Username" for="new_gitUsername"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.GitUsername}" id="new_gitUsername"></apex:inputText>
+                </apex:pageBlockSectionItem>
 
                 <apex:pageBlockSectionItem >
                     <apex:outputLabel value="Include Triggers" for="new_trigger"></apex:outputLabel>
                     <apex:inputCheckbox value="{!GitScheduleItem.IncludeTriggers}" id="new_trigger"></apex:inputCheckbox>
                 </apex:pageBlockSectionItem>
-                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="GIT Email" for="new_gitEmail"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.GitEmail}" id="new_gitEmail"></apex:inputText>
+                </apex:pageBlockSectionItem>
 
                 <apex:pageBlockSectionItem >
                     <apex:outputLabel value="Include VF pages" for="new_vfpages"></apex:outputLabel>
                     <apex:inputCheckbox value="{!GitScheduleItem.IncludeVisualForcePages}" id="new_vfpages"></apex:inputCheckbox>
                 </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="GIT Repository" for="new_gitRepository"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.GitRepository}" id="new_gitRepository"></apex:inputText>
+                </apex:pageBlockSectionItem>
+
                 <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="GIT Path" for="new_gitPath"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.GitPath}" id="new_gitPath"></apex:inputText>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Encryption Key" for="new_encryptionKey"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.encryptedKey}" id="new_encryptionKey"></apex:inputText>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Namespace" for="new_namespace"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.namespace}" id="new_namespace"></apex:inputText>
+                </apex:pageBlockSectionItem>
 
                 <!-- END Code to FETCH -->
 
             </apex:pageBlockSection>
         </apex:pageBlock>
 
+        <apex:outputPanel id="popup" >
+            <apex:outputPanel styleClass="popupBackground" layout="block" rendered="{!displayPopup}"/>
+            <apex:outputPanel styleClass="custPopup" layout="block" rendered="{!displayPopup}">
+                {!messageToDisplay}
+                <br/><br/><br/>
+                <apex:commandButton value="Close" action="{!closePopup}" rerender="formId"/>
+            </apex:outputPanel>
+        </apex:outputPanel>
 
 
     </apex:form>

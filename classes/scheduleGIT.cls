@@ -5,6 +5,8 @@
 public with sharing class scheduleGIT implements Schedulable{
 
     public String target {get;set;}
+    public Static String SECURITY_KEY = '123JKJIJOJKHIULKOIJUHNKO123OSD';
+    public Static String URL = 'https://boiling-shore-35292.herokuapp.com';
 
     public scheduleGIT(String target){
         this.target = target;
@@ -24,24 +26,32 @@ public with sharing class scheduleGIT implements Schedulable{
 
     @Future (callout=true)
     public static void process(String target){
+        Datetime currentDatetime = Datetime.now();
+
         Map<String,Object> returned = new Map<String,Object>{
-                'apex'=> new List<Id>(),
-                'page'=> new List<Id>(),
-                'trigger'=> new List<Id>()
+                'security_key'   => SECURITY_KEY,
+                'org_id'        => UserInfo.getOrganizationId()
         };
 
         bounceback__GitSettings__c settings = bounceback__GitSettings__c.getValues(target);
 
 
         returned.put('settings',new Map<String,Object>{
-                'name'=> target,
-                'apex'=> settings.bounceback__IncludeApexClasses__c,
-                'trigger'=> settings.bounceback__IncludeTriggers__c,
-                'page'=> settings.bounceback__IncludeVisualForcePages__c,
+                'name'          => target,
+                'apex'          => settings.bounceback__IncludeApexClasses__c,
+                'trigger'       => settings.bounceback__IncludeTriggers__c,
+                'page'          => settings.bounceback__IncludeVisualForcePages__c,
+                'component'     => settings.bounceback__IncludeComponents__c,
                 'git' => new Map<String,String>{
-                        'username'=> settings.bounceback__UsernameGIT__c,
-                        'password'=> settings.bounceback__passwordGIT__c
-                }
+                        'username'      => settings.bounceback__UsernameGIT__c,
+                        'email'         => settings.bounceback__EmailGIT__c,
+                        'repository'    => settings.bounceback__RepositoryGIT__c,
+                        'path'          => settings.bounceback__PathGIT__c,
+                        'type'          => settings.bounceback__Type__c.toLowerCase(),
+                        'key'           => settings.bounceback__EncryptionKey__c
+                },
+                'cursor'        => settings.bounceback__CurrentSelector__c,
+                'namespace'     => settings.bounceback__Namespace__c
         });
 
 
@@ -49,34 +59,64 @@ public with sharing class scheduleGIT implements Schedulable{
 
         Datetime dateSelector = settings.bounceback__CurrentSelector__c; // Custom Setting
 
-        if(settings.bounceback__IncludeApexClasses__c){
-            for(ApexClass apexClassItem : [select id from ApexClass where lastModifiedDate >= :dateSelector and NamespacePrefix = null]){
-                ((List<Id>)returned.get('apex')).add(apexClassItem.Id);
-            }
-        }
-
-        if(settings.bounceback__IncludeVisualForcePages__c) {
-            for (ApexPage apexPageItem : [select id from ApexPage where lastModifiedDate >= :dateSelector and NamespacePrefix = null]) {
-                ((List<Id>) returned.get('page')).add(apexPageItem.Id);
-            }
-        }
-
-        if(settings.bounceback__IncludeTriggers__c){
-            for(ApexTrigger apexTriggerItem : [select id from ApexTrigger where lastModifiedDate >= :dateSelector and NamespacePrefix = null]){
-                ((List<Id>)returned.get('trigger')).add(apexTriggerItem.Id);
-            }
-        }
 
 
 
 
-        String chronExpression = '0 0 * * * ?';
-        System.schedule( 'Digital Deer GIT - '+target, chronExpression,new scheduleGIT(target));
+
         System.debug(JSON.serialize(returned));
 
-        if(((List<Id>)returned.get('trigger')).size() > 0 || ((List<Id>)returned.get('page')).size() > 0 || ((List<Id>)returned.get('apex')).size() > 0){
+        Boolean callWebservice = true;
+
+        if(callWebservice && settings.bounceback__SSHReady__c){
             // Here we send the information to server
+            HttpRequest req = new HttpRequest();
+            req.setMethod('POST');
+
+            req.setHeader('content-type', 'application/json');
+            req.setEndpoint(URL+'/rest/git');
+            req.setBody(JSON.serialize(returned));
+            System.debug(JSON.serialize(returned));
+
+            Http http = new Http();
+
+            try {
+
+                HTTPResponse res = http.send(req);
+                System.debug(res.toString());
+                System.debug('STATUS:'+res.getStatus());
+                System.debug('STATUS_CODE:'+res.getStatusCode());
+
+
+                bounceback__GitSettings__c settingToUpdate = bounceback__GitSettings__c.getValues(target);
+                settingToUpdate.bounceback__CurrentSelector__c = currentDatetime;
+                upsert  settingToUpdate name;
+                String chronExpression = '0 0 * * * ?';
+                System.schedule( 'Digital Deer GIT - '+target, chronExpression,new scheduleGIT(target));
+            } catch(System.CalloutException e) {
+                System.debug(e.getMessage());
+            }
         }
+
+
+
+
+    }
+
+
+    public static String filterBuilder(Datetime cursor,String namespace){
+        String returned = '';
+        if(namespace == null){
+            returned +=' NamespacePrefix = null';
+        }else{
+            returned +=' NamespacePrefix = \''+namespace+'\'';
+        }
+
+        if(cursor != null){
+            returned +=' AND LastModifiedDate >= '+cursor;
+        }
+
+        return returned;
 
     }
 
