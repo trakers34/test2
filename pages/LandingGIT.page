@@ -40,26 +40,23 @@
         </apex:pageBlockButtons>
         <apex:pageBlockSection title="Configuration" columns="1" id="Configuration">
 
+
             <apex:outputLabel >
                 <h3>Step 1</h3>
             </apex:outputLabel>
             <apex:outputPanel style="margin-left:30px;">
-                Create at least one schedule to synchronize with Github
+                Oauth with Digital Deer server to communicate with your instance of salesforce <a href="http://boiling-shore-35292.herokuapp.com/oauth2/auth">OAuth</a> <br />
             </apex:outputPanel>
+
 
             <apex:outputLabel >
                 <h3>Step 2</h3>
             </apex:outputLabel>
             <apex:outputPanel style="margin-left:30px;">
-                Init the module by clicking the "Init" button.  <br />
+                Create at least one schedule to synchronize with GIT
             </apex:outputPanel>
 
-            <apex:outputLabel >
-                <h3>Step 3</h3>
-            </apex:outputLabel>
-            <apex:outputPanel style="margin-left:30px;">
-                Oauth with Digital Deer server to communicate with your instance of salesforce <a href="http://boiling-shore-35292.herokuapp.com/oauth2/auth">OAuth</a> <br />
-            </apex:outputPanel>
+
 
 
         </apex:pageBlockSection>
@@ -70,15 +67,20 @@
                 <apex:column headerValue="Type" value="{!item.type}"></apex:column>
                 <apex:column headerValue="Frequency" value="{!item.frequency}"></apex:column>
                 <apex:column headerValue="Active" value="{!item.active}"></apex:column>
-                <apex:column headerValue="SSH Ready" value="{!item.SSHReady}"></apex:column>
                 <apex:column headerValue="Action(s)">
-                    <apex:commandButton value="Edit" action="{!editSchedule}">
+                    <apex:commandButton value="Edit" action="{!edit}">
                         <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
                     </apex:commandButton>
-                    <apex:commandButton value="Delete" action="{!deleteSchedule}" >
+                    <apex:commandButton value="Delete" action="{!remove}" >
                         <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
                     </apex:commandButton>
-                    <apex:commandButton value="Generate SSH keys" action="{!generateSSHKeys}" rendered="{!!item.SSHReady}" >
+                    <apex:commandButton value="Activate" action="{!activate}" rendered="{!!item.active}">
+                        <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
+                    </apex:commandButton>
+                    <apex:commandButton value="Deactivate" action="{!deactivate}" rendered="{!item.active}">
+                        <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
+                    </apex:commandButton>
+                    <apex:commandButton value="Reset" action="{!reset}" rendered="{!item.active}">
                         <apex:param name="selectedItem" value="{!item.name}" assignTo="{!selectedItem}"/>
                     </apex:commandButton>
                 </apex:column>
@@ -147,7 +149,10 @@
                     <apex:inputText value="{!GitScheduleItem.GitRepository}" id="new_gitRepository"></apex:inputText>
                 </apex:pageBlockSectionItem>
 
-                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Include Components" for="new_components"></apex:outputLabel>
+                    <apex:inputCheckbox value="{!GitScheduleItem.IncludeComponents}" id="new_components"></apex:inputCheckbox>
+                </apex:pageBlockSectionItem>
                 <apex:pageBlockSectionItem >
                     <apex:outputLabel value="GIT Path" for="new_gitPath"></apex:outputLabel>
                     <apex:inputText value="{!GitScheduleItem.GitPath}" id="new_gitPath"></apex:inputText>
@@ -155,8 +160,14 @@
 
                 <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
                 <apex:pageBlockSectionItem >
-                    <apex:outputLabel value="Encryption Key" for="new_encryptionKey"></apex:outputLabel>
-                    <apex:inputText value="{!GitScheduleItem.encryptedKey}" id="new_encryptionKey"></apex:inputText>
+                    <apex:outputLabel value="GIT Branch" for="new_gitBranch"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.GitBranch}" id="new_gitBranch"></apex:inputText>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Git Token" for="new_gitToken"></apex:outputLabel>
+                    <apex:inputText value="{!GitScheduleItem.gitToken}" id="new_gitToken"></apex:inputText>
                 </apex:pageBlockSectionItem>
 
                 <apex:pageBlockSectionItem ></apex:pageBlockSectionItem>

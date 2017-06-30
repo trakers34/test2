@@ -47,8 +47,9 @@ public with sharing class scheduleGIT implements Schedulable{
                         'email'         => settings.bounceback__EmailGIT__c,
                         'repository'    => settings.bounceback__RepositoryGIT__c,
                         'path'          => settings.bounceback__PathGIT__c,
+                        'branch'        => settings.bounceback__branchGit__c == null ? 'Master':settings.bounceback__branchGit__c,
                         'type'          => settings.bounceback__Type__c.toLowerCase(),
-                        'key'           => settings.bounceback__EncryptionKey__c
+                        'token'         => settings.bounceback__TokenGit__c
                 },
                 'cursor'        => settings.bounceback__CurrentSelector__c,
                 'namespace'     => settings.bounceback__Namespace__c
@@ -66,13 +67,15 @@ public with sharing class scheduleGIT implements Schedulable{
 
         System.debug(JSON.serialize(returned));
 
-        Boolean callWebservice = true;
 
-        if(callWebservice && settings.bounceback__SSHReady__c){
+
+        Boolean callWebservice = true; // test
+
+        if(callWebservice && settings.bounceback__TokenGit__c <> null){
             // Here we send the information to server
             HttpRequest req = new HttpRequest();
             req.setMethod('POST');
-
+            req.setTimeout(120000);
             req.setHeader('content-type', 'application/json');
             req.setEndpoint(URL+'/rest/git');
             req.setBody(JSON.serialize(returned));

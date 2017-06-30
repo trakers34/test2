@@ -26,6 +26,19 @@ public with sharing class LandingGITController {
 
     public void save(){
         bounceback__GitSettings__c gitSetting = this.GitScheduleItem.getGitSetting();
+        bounceback__GitSettings__c original = bounceback__GitSettings__c.getValues(this.GitScheduleItem.name);
+
+
+
+        if( // We check the diff of "Include" to know if we should reset or not
+                original.bounceback__IncludeApexClasses__c != gitSetting.bounceback__IncludeApexClasses__c ||
+                original.bounceback__IncludeVisualForcePages__c != gitSetting.bounceback__IncludeVisualForcePages__c ||
+                original.bounceback__IncludeTriggers__c != gitSetting.bounceback__IncludeTriggers__c ||
+                original.bounceback__IncludeComponents__c != gitSetting.bounceback__IncludeComponents__c
+                ){
+            gitSetting.bounceback__CurrentSelector__c = null;
+        }
+
         if(this.mode == 'new' && [select count() from bounceback__GitSettings__c where name =:gitSetting.Name] == 1){
             ApexPages.addmessage(new ApexPages.message(ApexPages.severity.WARNING,'This name is already used'));
         }else{
@@ -37,7 +50,10 @@ public with sharing class LandingGITController {
             System.abortJob(cJob.Id);
         }
 
-        scheduleGIT.process(gitSetting.Name);
+        if(gitSetting.bounceback__active__c){
+            scheduleGIT.process(gitSetting.Name);
+        }
+
 
     }
 
@@ -46,12 +62,24 @@ public with sharing class LandingGITController {
         this.GitScheduleItem = new GitSchedule();
     }
 
-    public void editSchedule(){
+    public void edit(){
         this.mode = 'edit';
         this.GitScheduleItem = new GitSchedule(bounceback__GitSettings__c.getValues(selectedItem));
     }
 
-    public void deleteSchedule(){
+    public void reset(){
+        bounceback__GitSettings__c item = bounceback__GitSettings__c.getValues(selectedItem);
+                                   item.bounceback__CurrentSelector__c = null;
+        String name = CRON_NAME+item.Name;
+        for(CronTrigger cJob : [select id from CronTrigger where CronJobDetail.Name = :name]){
+            System.abortJob(cJob.Id);
+        }
+        update item;
+        scheduleGIT.process(item.Name);
+
+    }
+
+    public void remove(){
 
         bounceback__GitSettings__c item = bounceback__GitSettings__c.getValues(selectedItem);
         String name = CRON_NAME+item.Name;
@@ -61,47 +89,22 @@ public with sharing class LandingGITController {
         delete item;
     }
 
-    public void generateSSHKeys(){
-        this.displayPopup = true;
+    public void activate(){
+        bounceback__GitSettings__c item = bounceback__GitSettings__c.getValues(selectedItem);
+        item.bounceback__active__c = true;
+        update item;
+        scheduleGIT.process(item.Name);
+    }
 
-        GitSchedule currentGitScheduleItem = new GitSchedule(bounceback__GitSettings__c.getValues(selectedItem));
-
-        Map<String,Object> returned = new Map<String,Object>{
-                'username'=>currentGitScheduleItem.gitUsername,
-                'type'=>currentGitScheduleItem.type.toLowerCase(),
-                'security_key'=>scheduleGIT.SECURITY_KEY,
-                'org_id'=>UserInfo.getOrganizationId(),
-                'encryption_key'=> currentGitScheduleItem.encryptedKey
-        };
-
-        HttpRequest req = new HttpRequest();
-        req.setMethod('POST');
-
-        req.setHeader('content-type', 'application/json');
-        req.setEndpoint(scheduleGIT.URL+'/rest/createSSHKey');
-        req.setBody(JSON.serialize(returned));
-
-        Http http = new Http();
-        String public_key = null;
-        try {
-
-            HTTPResponse res = http.send(req);
-            System.debug(res.toString());
-            System.debug('STATUS:'+res.getStatus());
-            System.debug('STATUS_CODE:'+res.getStatusCode());
-            Map<String,Object> result = (Map<String,Object>)JSON.deserializeUntyped(res.getBody());
-            public_key = (String)result.get('public_key');
-            currentGitScheduleItem.SSHReady = true;
-
-            bounceback__GitSettings__c gitSetting = currentGitScheduleItem.getGitSetting();
-
-            upsert gitSetting name;
-
-        } catch(System.CalloutException e) {
-            System.debug(e.getMessage());
+    public void deactivate(){
+        bounceback__GitSettings__c item = bounceback__GitSettings__c.getValues(selectedItem);
+                                    item.bounceback__active__c = false;
+        String name = CRON_NAME+item.Name;
+        for(CronTrigger cJob : [select id from CronTrigger where CronJobDetail.Name = :name]){
+            System.abortJob(cJob.Id);
         }
+        update item;
 
-        this.messageToDisplay = 'The public key to add on GIT is : '+public_key+'<br/><br/><br/>';
     }
 
     public void closePopup(){
@@ -156,13 +159,14 @@ public with sharing class LandingGITController {
         public Boolean IncludeApexClasses{get;set;}
         public Boolean IncludeTriggers{get;set;}
         public Boolean IncludeVisualForcePages{get;set;}
+        public Boolean IncludeComponents{get;set;}
 
         public String gitUsername {get;set;}
         public String gitEmail {get;set;}
         public String gitRepository {get;set;}
         public String gitPath {get;set;}
-        public String encryptedKey {get;set;}
-        public Boolean SSHReady {get;set;}
+        public String gitToken {get;set;}
+        public String gitBranch {get;set;}
         public Datetime cursor {get;set;}
         public String namespace {get;set;}
 
@@ -178,12 +182,13 @@ public with sharing class LandingGITController {
             this.IncludeApexClasses         = item.bounceback__IncludeApexClasses__c;
             this.IncludeTriggers            = item.bounceback__IncludeTriggers__c;
             this.IncludeVisualForcePages    = item.bounceback__IncludeVisualForcePages__c;
+            this.IncludeComponents          = item.bounceback__IncludeComponents__c;
             this.gitUsername                = item.bounceback__UsernameGit__c;
             this.gitEmail                   = item.bounceback__EmailGit__c;
             this.gitRepository              = item.bounceback__RepositoryGit__c;
             this.gitPath                    = item.bounceback__PathGit__c;
-            this.encryptedKey               = item.bounceback__EncryptionKey__c;
-            this.SSHReady                   = item.bounceback__SSHReady__c;
+            this.gitToken                   = item.bounceback__tokenGit__c;
+            this.gitBranch                  = item.bounceback__branchGit__c;
             this.cursor                     = item.bounceback__CurrentSelector__c;
             this.namespace                  = item.bounceback__Namespace__c;
         }
@@ -197,12 +202,13 @@ public with sharing class LandingGITController {
                     item.bounceback__IncludeApexClasses__c          = IncludeApexClasses;
                     item.bounceback__IncludeTriggers__c             = IncludeTriggers;
                     item.bounceback__IncludeVisualForcePages__c     = IncludeVisualForcePages;
+                    item.bounceback__IncludeComponents__c           = IncludeComponents;
                     item.bounceback__UsernameGit__c                 = gitUsername;
                     item.bounceback__EmailGit__c                    = gitEmail;
                     item.bounceback__RepositoryGit__c               = gitRepository;
                     item.bounceback__PathGit__c                     = gitPath;
-                    item.bounceback__EncryptionKey__c               = encryptedKey;
-                    item.bounceback__SSHReady__c                    = SSHReady;
+                    item.bounceback__branchGit__c                   = gitBranch;
+                    item.bounceback__tokenGit__c                    = gitToken;
                     item.bounceback__CurrentSelector__c             = cursor;
                     item.bounceback__Namespace__c                   = namespace;
             return item;
