@@ -51,7 +51,7 @@ public with sharing class scheduleGIT implements Schedulable{
                         'type'          => settings.bounceback__Type__c.toLowerCase(),
                         'token'         => settings.bounceback__TokenGit__c
                 },
-                'cursor'        => settings.bounceback__CurrentSelector__c,
+                'cursor'        => null,//settings.bounceback__CurrentSelector__c,
                 'namespace'     => settings.bounceback__Namespace__c
         });
 
