@@ -47,7 +47,7 @@ public with sharing class scheduleGIT implements Schedulable{
                         'email'         => settings.bounceback__EmailGIT__c,
                         'repository'    => settings.bounceback__RepositoryGIT__c,
                         'path'          => settings.bounceback__PathGIT__c,
-                        'branch'        => settings.bounceback__branchGit__c == null ? 'Master':settings.bounceback__branchGit__c,
+                        'branch'        => settings.bounceback__branchGit__c == null ? 'master':settings.bounceback__branchGit__c,
                         'type'          => settings.bounceback__Type__c.toLowerCase(),
                         'token'         => settings.bounceback__TokenGit__c
                 },
