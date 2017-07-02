@@ -22,6 +22,7 @@ public with sharing class scheduleGIT implements Schedulable{
         for (String key : settings.keySet()) {
             process(key);
         }
+        // hello test
     }
 
     @Future (callout=true)
