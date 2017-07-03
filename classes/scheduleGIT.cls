@@ -18,11 +18,10 @@ public with sharing class scheduleGIT implements Schedulable{
     }
 
     public static void init(){
-        Map<String,bounceback__GitSettings__c> settings = bounceback__GitSettings__c.getAll();
+        Map<String,GitSettings__c> settings = GitSettings__c.getAll();
         for (String key : settings.keySet()) {
             process(key);
         }
-        // hello test
     }
 
     @Future (callout=true)
@@ -34,36 +33,27 @@ public with sharing class scheduleGIT implements Schedulable{
                 'org_id'        => UserInfo.getOrganizationId()
         };
 
-        bounceback__GitSettings__c settings = bounceback__GitSettings__c.getValues(target);
+        GitSettings__c settings = GitSettings__c.getValues(target);
 
 
         returned.put('settings',new Map<String,Object>{
                 'name'          => target,
-                'apex'          => settings.bounceback__IncludeApexClasses__c,
-                'trigger'       => settings.bounceback__IncludeTriggers__c,
-                'page'          => settings.bounceback__IncludeVisualForcePages__c,
-                'component'     => settings.bounceback__IncludeComponents__c,
+                'apex'          => settings.IncludeApexClasses__c,
+                'trigger'       => settings.IncludeTriggers__c,
+                'page'          => settings.IncludeVisualForcePages__c,
+                'component'     => settings.IncludeComponents__c,
                 'git' => new Map<String,String>{
-                        'username'      => settings.bounceback__UsernameGIT__c,
-                        'email'         => settings.bounceback__EmailGIT__c,
-                        'repository'    => settings.bounceback__RepositoryGIT__c,
-                        'path'          => settings.bounceback__PathGIT__c,
-                        'branch'        => settings.bounceback__branchGit__c == null ? 'master':settings.bounceback__branchGit__c,
-                        'type'          => settings.bounceback__Type__c.toLowerCase(),
-                        'token'         => settings.bounceback__TokenGit__c
+                        'username'      => settings.UsernameGIT__c,
+                        'email'         => settings.EmailGIT__c,
+                        'repository'    => settings.RepositoryGIT__c,
+                        'path'          => settings.PathGIT__c,
+                        'branch'        => settings.branchGit__c == null ? 'master':settings.branchGit__c,
+                        'type'          => settings.Type__c.toLowerCase(),
+                        'token'         => settings.TokenGit__c
                 },
-                'cursor'        => null,//settings.bounceback__CurrentSelector__c,
-                'namespace'     => settings.bounceback__Namespace__c
+                'cursor'        => null,//settings.CurrentSelector__c,
+                'namespace'     => settings.Namespace__c
         });
-
-
-
-
-        Datetime dateSelector = settings.bounceback__CurrentSelector__c; // Custom Setting
-
-
-
-
 
 
         System.debug(JSON.serialize(returned));
@@ -72,7 +62,7 @@ public with sharing class scheduleGIT implements Schedulable{
 
         Boolean callWebservice = true; // test
 
-        if(callWebservice && settings.bounceback__TokenGit__c <> null){
+        if(callWebservice && settings.TokenGit__c <> null){
             // Here we send the information to server
             HttpRequest req = new HttpRequest();
             req.setMethod('POST');
@@ -91,10 +81,6 @@ public with sharing class scheduleGIT implements Schedulable{
                 System.debug('STATUS:'+res.getStatus());
                 System.debug('STATUS_CODE:'+res.getStatusCode());
 
-
-                bounceback__GitSettings__c settingToUpdate = bounceback__GitSettings__c.getValues(target);
-                settingToUpdate.bounceback__CurrentSelector__c = currentDatetime;
-                upsert  settingToUpdate name;
                 String chronExpression = '0 0 * * * ?';
                 System.schedule( 'Digital Deer GIT - '+target, chronExpression,new scheduleGIT(target));
             } catch(System.CalloutException e) {
